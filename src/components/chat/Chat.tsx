@@ -25,7 +25,7 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
     return {
       model: "gpt-3.5-turbo",
       messages: messagesForApiBody,
-    }
+    };
   }, [messagesForApiBody]);
 
   const windowEndRef: React.RefObject<HTMLDivElement> = useRef(null);
@@ -106,27 +106,25 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
       const userPrompt = messages[messages.length - 1]?.content || "";
 
       fetchResponse(
-  url,
-  API_KEY,
-  apiRequestBody,
-  messages,
-  (updatedMessages) => {
-    setMessages(updatedMessages);
+        url,
+        API_KEY,
+        apiRequestBody,
+        messages,
+        (updatedMessages: Message[]) => {
+          setMessages(updatedMessages);
 
-    const botResponse = updatedMessages
-      .filter((msg) => msg.role === assistant)
-      .slice(-1)[0]?.content || "";
+          const botResponse = updatedMessages
+            .filter((msg) => msg.role === assistant)
+            .slice(-1)[0]?.content || "";
 
-    const userPrompt = messages[messages.length - 1]?.content || "";
-
-    setChatHistory((prev) => [
-      ...prev,
-      { prompt: userPrompt, response: botResponse },
-    ]);
-  },
-  setTypingIndicator,
-  setStatus
-);
+          setChatHistory((prev) => [
+            ...prev,
+            { prompt: userPrompt, response: botResponse },
+          ]);
+        },
+        setTypingIndicator,
+        setStatus
+      );
     }
   }, [messages, setMessages, typingIndicator, setTypingIndicator, status, apiRequestBody]);
 
