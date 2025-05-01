@@ -103,32 +103,29 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
 
   useEffect(() => {
     if (status === sending || status === retrying) {
-      const userPrompt = messages[messages.length - 1]?.content || "";
-
-      const handleUpdatedMessages = (updatedMessages: Message[]) => {
-        setMessages(updatedMessages);
-
-        const botResponse = updatedMessages
-          .filter((msg) => msg.role === assistant)
-          .slice(-1)[0]?.content || "";
-
-        setChatHistory((prev) => [
-          ...prev,
-          { prompt: userPrompt, response: botResponse },
-        ]);
-      };
-
       fetchResponse(
         url,
         API_KEY,
         apiRequestBody,
         messages,
-        handleUpdatedMessages,
+        setMessages,
         setTypingIndicator,
         setStatus
       );
     }
   }, [messages, setMessages, typingIndicator, setTypingIndicator, status, apiRequestBody]);
+
+  useEffect(() => {
+    const lastUserMessage = messages.filter(m => m.role === user).slice(-1)[0];
+    const lastBotMessage = messages.filter(m => m.role === assistant).slice(-1)[0];
+
+    if (status === success && lastUserMessage && lastBotMessage) {
+      setChatHistory((prev) => [
+        ...prev,
+        { prompt: lastUserMessage.content, response: lastBotMessage.content },
+      ]);
+    }
+  }, [messages, status]);
 
   return (
     <>
