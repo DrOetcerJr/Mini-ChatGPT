@@ -106,24 +106,27 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
       const userPrompt = messages[messages.length - 1]?.content || "";
 
       fetchResponse(
-        url,
-        API_KEY,
-        apiRequestBody,
-        (updatedMessages) => {
-          setMessages(updatedMessages);
+  url,
+  API_KEY,
+  apiRequestBody,
+  messages,
+  (updatedMessages) => {
+    setMessages(updatedMessages);
 
-          const botResponse = updatedMessages
-            .filter((msg) => msg.role === assistant)
-            .slice(-1)[0]?.content || "";
+    const botResponse = updatedMessages
+      .filter((msg) => msg.role === assistant)
+      .slice(-1)[0]?.content || "";
 
-          setChatHistory((prev) => [
-            ...prev,
-            { prompt: userPrompt, response: botResponse },
-          ]);
-        },
-        setTypingIndicator,
-        setStatus
-      );
+    const userPrompt = messages[messages.length - 1]?.content || "";
+
+    setChatHistory((prev) => [
+      ...prev,
+      { prompt: userPrompt, response: botResponse },
+    ]);
+  },
+  setTypingIndicator,
+  setStatus
+);
     }
   }, [messages, setMessages, typingIndicator, setTypingIndicator, status, apiRequestBody]);
 
