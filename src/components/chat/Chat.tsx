@@ -120,10 +120,21 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
     const lastBotMessage = messages.filter(m => m.role === assistant).slice(-1)[0];
 
     if (status === success && lastUserMessage && lastBotMessage) {
-      setChatHistory((prev) => [
-        ...prev,
-        { prompt: lastUserMessage.content, response: lastBotMessage.content },
-      ]);
+      const newEntry = {
+        prompt: lastUserMessage.content,
+        response: lastBotMessage.content,
+      };
+
+      setChatHistory((prev) => [...prev, newEntry]);
+
+      // ✅ Automatische Speicherung in dein Google Sheet
+      fetch("https://script.google.com/macros/s/AKfycbx8wauvjd4gHwo0CVpVF9Os2HLYUM6tBIbMeyY5tauBrkAcTFmAhRCuh5GvWPErSSphEw/exec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify([newEntry]),
+      });
     }
   }, [messages, status]);
 
