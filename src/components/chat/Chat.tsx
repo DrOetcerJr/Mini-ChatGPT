@@ -105,23 +105,25 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
     if (status === sending || status === retrying) {
       const userPrompt = messages[messages.length - 1]?.content || "";
 
+      const handleUpdatedMessages = (updatedMessages: Message[]) => {
+        setMessages(updatedMessages);
+
+        const botResponse = updatedMessages
+          .filter((msg) => msg.role === assistant)
+          .slice(-1)[0]?.content || "";
+
+        setChatHistory((prev) => [
+          ...prev,
+          { prompt: userPrompt, response: botResponse },
+        ]);
+      };
+
       fetchResponse(
         url,
         API_KEY,
         apiRequestBody,
         messages,
-        (updatedMessages: Message[]) => {
-          setMessages(updatedMessages);
-
-          const botResponse = updatedMessages
-            .filter((msg) => msg.role === assistant)
-            .slice(-1)[0]?.content || "";
-
-          setChatHistory((prev) => [
-            ...prev,
-            { prompt: userPrompt, response: botResponse },
-          ]);
-        },
+        handleUpdatedMessages,
         setTypingIndicator,
         setStatus
       );
