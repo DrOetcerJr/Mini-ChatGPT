@@ -18,6 +18,7 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
   const [typingIndicator, setTypingIndicator] = useState(false);
   const [status, setStatus] = useState(initial);
   const [retryMsgId, setRetryMsgId] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ prompt: string; response: string }[]>([]);
 
   const messagesForApiBody = messages.map(({ role, content }) => ({ role, content }));
   const apiRequestBody = useMemo(() => {
@@ -27,10 +28,7 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
     }
   }, [messagesForApiBody]);
 
-  //creating a refernce for the end of chat window
   const windowEndRef: React.RefObject<HTMLDivElement> = useRef(null);
-
-  //creating a refernce for chat input to focus upon render
   const inputRef: React.RefObject<HTMLTextAreaElement> = useRef(null);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -76,19 +74,56 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
     fetchResponse(url, API_KEY, apiRequestBody, messages, setMessages, setTypingIndicator, setStatus);
   };
 
+  const downloadCSV = () => {
+    const header = "Prompt,Response\n";
+    const rows = chatHistory
+      .map(entry =>
+        `"${entry.prompt.replace(/"/g, '""')}","${entry.response.replace(/"/g, '""')}"`
+      )
+      .join("\n");
+    const csvContent = header + rows;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "chat-history.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, openWindow, status]);
 
   useEffect(() => {
-    //store the updated conversation in localstorage whenever messages are updated
     if (messages.length > 1 || !shouldRetrieveBackup)
       window.localStorage.setItem("messages", JSON.stringify(messages));
   }, [messages, shouldRetrieveBackup]);
 
   useEffect(() => {
     if (status === sending || status === retrying) {
-      fetchResponse(url, API_KEY, apiRequestBody, messages, setMessages, setTypingIndicator, setStatus);
+      const userPrompt = messages[messages.length - 1]?.content || "";
+
+      fetchResponse(
+        url,
+        API_KEY,
+        apiRequestBody,
+        (updatedMessages) => {
+          setMessages(updatedMessages);
+
+          const botResponse = updatedMessages
+            .filter((msg) => msg.role === assistant)
+            .slice(-1)[0]?.content || "";
+
+          setChatHistory((prev) => [
+            ...prev,
+            { prompt: userPrompt, response: botResponse },
+          ]);
+        },
+        setTypingIndicator,
+        setStatus
+      );
     }
   }, [messages, setMessages, typingIndicator, setTypingIndicator, status, apiRequestBody]);
 
@@ -96,26 +131,18 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
     <>
       {openWindow && (
         <div className="chat-container">
-          <ChatBanner />  
+          <ChatBanner />
           <ChatMessages windowEndRef={windowEndRef}>
             {messages.map((message) => {
               if (message.role === assistant) {
                 return (
-                  <React.Fragment
-                    key={message.datetime.concat(message.content)}
-                  >
-                    <ChatBubble
-                      isBotBubble
-                      message={message}
-                      handleRetry={handleRetry}
-                    />
+                  <React.Fragment key={message.datetime.concat(message.content)}>
+                    <ChatBubble isBotBubble message={message} handleRetry={handleRetry} />
                   </React.Fragment>
                 );
               } else {
                 return (
-                  <React.Fragment
-                    key={message.datetime.concat(message.content)}
-                  >
+                  <React.Fragment key={message.datetime.concat(message.content)}>
                     <ChatBubble
                       isBotBubble={false}
                       message={message}
@@ -137,6 +164,9 @@ const Chat = ({ messages, setMessages, openWindow, shouldRetrieveBackup }: ChatP
             handleEnter={handleEnter}
             status={status}
           />
+          <button onClick={downloadCSV} style={{ margin: "10px", padding: "8px" }}>
+            Download Chat History (CSV)
+          </button>
         </div>
       )}
     </>
